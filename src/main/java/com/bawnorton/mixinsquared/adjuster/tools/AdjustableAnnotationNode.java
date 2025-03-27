@@ -107,6 +107,9 @@ public abstract class AdjustableAnnotationNode extends AnnotationNode {
         WRAP_OPERATION(AdjustableWrapOperationNode::new, "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;"),
         WRAP_WITH_CONDITION(AdjustableWrapWithConditionNode::new, "Lcom/llamalad7/mixinextras/injector/v2/WrapWithCondition;");
 
+        // Cache values for faster iteration
+        // DO NOT MODIFY IT
+        private static final KnownAnnotations[] VALUES = values();
         private final AdjustableAnnotationNodeFactory<?> factory;
         private final String annotationClassDesc;
 
@@ -128,7 +131,7 @@ public abstract class AdjustableAnnotationNode extends AnnotationNode {
         }
 
         public static AdjustableAnnotationNode fromNode(AnnotationNode node) {
-            for(KnownAnnotations annotation : values()) {
+            for(KnownAnnotations annotation : VALUES) {
                 if(node.desc.equals(annotation.annotationClassDesc)) {
                     return annotation.create(node);
                 }
