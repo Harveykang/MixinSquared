@@ -40,6 +40,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
         MixinSquaredBootstrap.init();
         MixinCancellerLoader.load();
         MixinAnnotationAdjusterLoader.load();
+        MixinMemberCancellerLoader.load();
     }
 
     @Override

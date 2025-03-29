@@ -1,4 +1,4 @@
-package com.bawnorton.mixinsquared.node_canceller;
+package com.bawnorton.mixinsquared.member_canceller;
 
 import com.bawnorton.mixinsquared.adjuster.tools.AdjustableAnnotationNode;
 import com.bawnorton.mixinsquared.api.MixinMemberCanceller;

@@ -1,4 +1,4 @@
-package com.bawnorton.mixinsquared.node_canceller;
+package com.bawnorton.mixinsquared.member_canceller;
 
 import org.spongepowered.asm.mixin.throwables.MixinException;
 

@@ -27,7 +27,9 @@ package com.bawnorton.mixinsquared.platform.fabric;
 import com.bawnorton.mixinsquared.adjuster.MixinAnnotationAdjusterRegistrar;
 import com.bawnorton.mixinsquared.api.MixinAnnotationAdjuster;
 import com.bawnorton.mixinsquared.api.MixinCanceller;
+import com.bawnorton.mixinsquared.api.MixinMemberCanceller;
 import com.bawnorton.mixinsquared.canceller.MixinCancellerRegistrar;
+import com.bawnorton.mixinsquared.member_canceller.MixinMemberCancellerRegistrar;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class MixinSquaredApiImplLoader {
@@ -49,6 +51,16 @@ public final class MixinSquaredApiImplLoader {
                 MixinAnnotationAdjusterRegistrar.register(annotationAdjuster);
             } catch (Throwable e) {
                 System.err.printf("Mod %s provides a broken MixinAnnotationAdjuster implementation:\n", id);
+                e.printStackTrace(System.err);
+            }
+        });
+        FabricLoader.getInstance().getEntrypointContainers("mixinsquared-member-canceller", MixinMemberCanceller.class).forEach(container -> {
+            String id = container.getProvider().getMetadata().getId();
+            try {
+                MixinMemberCanceller canceller = container.getEntrypoint();
+                MixinMemberCancellerRegistrar.register(canceller);
+            } catch (Throwable e) {
+                System.err.printf("Mod %s provides a broken MixinMemberCanceller implementation:\n", id);
                 e.printStackTrace(System.err);
             }
         });
