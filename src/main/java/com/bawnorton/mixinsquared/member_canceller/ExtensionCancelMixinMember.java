@@ -22,7 +22,8 @@ public final class ExtensionCancelMixinMember implements IExtension {
     static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared:node_canceller");
     private static final String SHADOW_DESC = Type.getDescriptor(Shadow.class);
     static final List<MixinMemberCanceller> CANCELLERS = new CopyOnWriteArrayList<>();
-
+    // from MixinExtras com.llamalad7.mixinextras.transformer.MixinTransformerExtension
+    private final Set<ClassNode> preparedMixins = Collections.newSetFromMap(new WeakHashMap<>());
     private final FieldReference<Object> field_MixinInfo$state;
     private final FieldReference<ClassNode> field_MixinInfo$State$classNode;
 
@@ -54,6 +55,12 @@ public final class ExtensionCancelMixinMember implements IExtension {
         TargetClassContextExtension contextExtension = optional.get();
         SortedSet<IMixinInfo> mixins = contextExtension.getMixins();
         for (IMixinInfo mixin : mixins) {
+            // Get the internal class node of the mixinInfo.
+            ClassNode cNode = field_MixinInfo$State$classNode.get(field_MixinInfo$state.get(mixin));
+            if (preparedMixins.contains(cNode)) {
+                continue;
+            }
+
             String mixinClassName = mixin.getClassName();
             List<String> l = mixin.getTargetClasses();
             List<String> targetClassNames = new ArrayList<>(l.size());
@@ -72,22 +79,20 @@ public final class ExtensionCancelMixinMember implements IExtension {
                     cancellers.add(canceller);
                 }
             }
-            if (cancellers == null) {
-                continue;
+
+            if (cancellers != null) {
+                List<MethodNode> methods = cNode.methods;
+                if (methods != null && !methods.isEmpty()) {
+                    cancelMethod(targetClassNames, mixinClassName, cancellers, methods);
+                }
+                List<FieldNode> fields = cNode.fields;
+                if (fields != null && !fields.isEmpty()) {
+                    // Assert all accesses from mixin methods to the cancelled fields are removed.
+                    cancelField(targetClassNames, mixinClassName, cancellers, fields, cNode);
+                }
             }
 
-            // Get the internal class node of the mixinInfo.
-            ClassNode cNode = field_MixinInfo$State$classNode.get(field_MixinInfo$state.get(mixin));
-
-            List<MethodNode> methods = cNode.methods;
-            if (methods != null && !methods.isEmpty()) {
-                cancelMethod(targetClassNames, mixinClassName, cancellers, methods);
-            }
-            List<FieldNode> fields = cNode.fields;
-            if (fields != null && !fields.isEmpty()) {
-                // Assert all accesses from mixin methods to the cancelled fields are removed.
-                cancelField(targetClassNames, mixinClassName, cancellers, fields, cNode);
-            }
+            preparedMixins.add(cNode);
         }
     }
 
@@ -124,10 +129,10 @@ public final class ExtensionCancelMixinMember implements IExtension {
                 parameterNames = new ArrayList<>();
             } else {
                 parameterNames = new ArrayList<>(mNode.parameters.size());
-				for (ParameterNode parameter : mNode.parameters) {
-					parameterNames.add(parameter.name);
-				}
-			}
+                for (ParameterNode parameter : mNode.parameters) {
+                    parameterNames.add(parameter.name);
+                }
+            }
 
             for (MixinMemberCanceller canceller : cancellers) {
                 boolean b = canceller.shouldCancelMethod(targetClassNames,
