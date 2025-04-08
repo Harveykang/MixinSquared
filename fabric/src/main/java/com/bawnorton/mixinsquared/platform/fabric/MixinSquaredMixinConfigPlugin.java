@@ -25,6 +25,7 @@
 package com.bawnorton.mixinsquared.platform.fabric;
 
 import com.bawnorton.mixinsquared.MixinSquaredBootstrap;
+import com.bawnorton.mixinsquared.target_modifier.TargetModifyApplication;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -57,7 +58,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public List<String> getMixins() {
-        return null;
+        return TargetModifyApplication.INSTANCE.getModifiedMixins();
     }
 
     @Override
