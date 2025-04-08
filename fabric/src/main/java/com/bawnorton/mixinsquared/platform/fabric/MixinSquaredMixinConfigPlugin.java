@@ -58,7 +58,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public List<String> getMixins() {
-        return TargetModifyApplication.INSTANCE.getModifiedMixins();
+        return null;
     }
 
     @Override

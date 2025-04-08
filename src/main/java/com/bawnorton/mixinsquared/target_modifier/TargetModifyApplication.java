@@ -1,21 +1,26 @@
 package com.bawnorton.mixinsquared.target_modifier;
 
-import java.util.ArrayList;
+import com.llamalad7.mixinextras.utils.MixinInternals;
+import com.sun.applet2.AppletParameters;
+import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
+
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TargetModifyApplication {
 	public static final TargetModifyApplication INSTANCE = new TargetModifyApplication();
-	private final List<String> modifiers = new ArrayList<>();
+	private static final Map<String, Set<TargetContext>> modifiers = new ConcurrentHashMap<>();
 
-	public Targets registerModifier(TargetModifier modifier) {
-		return new Targets(modifier);
+	public static TargetContext registerModifier(IMixinConfigPlugin plugin, TargetModifier modifier) {
+		TargetContext targetContext = new TargetContext(plugin, modifier);
+		modifiers.computeIfAbsent(modifier.getMixinClassName(), k -> ConcurrentHashMap.newKeySet()).add(targetContext);
+		MixinInternals.getTargets()
+		return targetContext;
 	}
 
 	private TargetModifyApplication() {
-	}
-
-	public List<String> getModifiedMixins() {
-		return Collections.unmodifiableList(modifiers);
 	}
 }
