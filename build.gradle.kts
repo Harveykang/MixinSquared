@@ -7,7 +7,7 @@ allprojects {
     apply(plugin = "maven-publish")
 
     group = "com.bawnorton"
-    version = "0.2.0"
+    version = "0.3.0-modified.0"
 
     repositories {
         mavenCentral()
@@ -15,14 +15,10 @@ allprojects {
     }
 
     dependencies {
-        compileOnly("org.spongepowered:mixin:0.8.6")
+        compileOnly("org.spongepowered:mixin:0.8.7")
         compileOnly("org.apache.commons:commons-lang3:3.3.2")
         compileOnly("org.ow2.asm:asm-debug-all:5.2")
         compileOnly("io.github.llamalad7:mixinextras-common:0.3.6")
-        runtimeOnly("org.spongepowered:mixin:0.8.6")
-        runtimeOnly("org.apache.commons:commons-lang3:3.3.2")
-        runtimeOnly("org.ow2.asm:asm-debug-all:5.2")
-        runtimeOnly("io.github.llamalad7:mixinextras-common:0.3.6")
     }
 
     java {

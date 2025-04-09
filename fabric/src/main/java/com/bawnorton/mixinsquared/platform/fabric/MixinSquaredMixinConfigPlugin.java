@@ -25,7 +25,8 @@
 package com.bawnorton.mixinsquared.platform.fabric;
 
 import com.bawnorton.mixinsquared.MixinSquaredBootstrap;
-import com.bawnorton.mixinsquared.target_modifier.TargetModifyApplication;
+import com.bawnorton.mixinsquared.platform.fabric.mixin.GeneratedImplDummy;
+import com.bawnorton.mixinsquared.target_modifier.TargetModifierApplication;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -39,6 +40,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
     public void onLoad(String mixinPackage) {
         MixinSquaredBootstrap.init();
         MixinSquaredApiImplLoader.load();
+        TargetModifierApplication.init(GeneratedImplDummy.LOOKUP, this);
     }
 
     @Override
@@ -48,7 +50,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        return true;
+        return TargetModifierApplication.getInstance().shouldApplyMixin(targetClassName, mixinClassName);
     }
 
     @Override
@@ -58,7 +60,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public List<String> getMixins() {
-        return null;
+        return TargetModifierApplication.getInstance().applyModifiers();
     }
 
     @Override
