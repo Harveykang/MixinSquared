@@ -1,6 +1,6 @@
 package com.bawnorton.mixinsquared.target_modifier;
 
-import com.bawnorton.mixinsquared.api.TargetModifier;
+import com.bawnorton.mixinsquared.api.MixinTargetModifier;
 import com.bawnorton.mixinsquared.canceller.MixinCancellerRegistrar;
 import com.bawnorton.mixinsquared.reflection.FieldReference;
 import com.bawnorton.mixinsquared.tools.ClassRenamer;
@@ -23,13 +23,9 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-public class TargetModifierApplication {
-    static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared-target_modifier");
-    static TargetModifierApplication INSTANCE;
-    /**
-     * key: original mixin class name, value: target modifier
-     */
-    static final Map<String, TargetModifier> MODIFIERS = new HashMap<>();
+public class MixinTargetsModifierApplication {
+    static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared-target-modifier");
+    static MixinTargetsModifierApplication INSTANCE;
     private static final FieldReference<String> pluginClassName;
     private static final FieldReference<IMixinService> mixinService;
     private static final FieldReference<List<IMixinConfig>> pendingConfigs;
@@ -49,6 +45,10 @@ public class TargetModifierApplication {
         }
     }
 
+    /**
+     * key: original mixin class name, value: target modifier
+     */
+    static final Map<String, MixinTargetModifier> MODIFIERS = new HashMap<>();
     final Map<String, String> generatedToOriginalMixins = new HashMap<>();
     final Set<String> originalMixins = new HashSet<>();
     final MethodHandles.Lookup lookup;
@@ -59,14 +59,14 @@ public class TargetModifierApplication {
         if (INSTANCE != null) {
             throw new IllegalStateException("TargetModifierApplication is already initialized");
         }
-        INSTANCE = new TargetModifierApplication(lookup, mixinSquaredPlugin);
+        INSTANCE = new MixinTargetsModifierApplication(lookup, mixinSquaredPlugin);
     }
 
-    public static TargetModifierApplication getInstance() {
+    public static MixinTargetsModifierApplication getInstance() {
         return INSTANCE;
     }
 
-    private TargetModifierApplication(MethodHandles.Lookup lookup, IMixinConfigPlugin mixinSquaredPlugin) {
+    private MixinTargetsModifierApplication(MethodHandles.Lookup lookup, IMixinConfigPlugin mixinSquaredPlugin) {
         MixinCancellerRegistrar.register((targetClassName, mixinClassName) -> originalMixins.contains(mixinClassName));
         this.lookup = lookup;
         this.mixinSquaredPlugin = mixinSquaredPlugin;
@@ -77,7 +77,8 @@ public class TargetModifierApplication {
     public List<String> applyModifiers() {
         IMixinTransformer activeTransformer =
             (IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer();
-        List<IMixinConfig> pendingConfigs = TargetModifierApplication.pendingConfigs.get(
+        // FIXME: this is unstable, but it works for now
+        List<IMixinConfig> pendingConfigs = MixinTargetsModifierApplication.pendingConfigs.get(
             mixinProcessor.get(activeTransformer));
         IMixinConfig mixinConfig = null;
         String pluginClass = mixinSquaredPlugin.getClass().getName();
@@ -92,14 +93,14 @@ public class TargetModifierApplication {
         IMixinService service = mixinService.get(mixinConfig);
         MixinServiceWrapper mixinServiceWrapper;
         if (!(service instanceof MixinServiceWrapper)) {
-            LOGGER.info("Wrapping mixin service for {}", mixinConfig);
+            LOGGER.info("Wrapping mixin service for {} so that we can modify target classes.", mixinConfig);
             mixinServiceWrapper = new MixinServiceWrapper(service);
             mixinService.set(mixinConfig, mixinServiceWrapper);
         } else {
             mixinServiceWrapper = (MixinServiceWrapper) service;
         }
         IClassBytecodeProvider bytecodeProvider = mixinServiceWrapper.getBytecodeProvider();
-        for (TargetModifier modifier : MODIFIERS.values()) {
+        for (MixinTargetModifier modifier : MODIFIERS.values()) {
             applyModifier(bytecodeProvider, modifier);
         }
         List<String> list = new ArrayList<>(generatedToOriginalMixins.size());
@@ -115,7 +116,7 @@ public class TargetModifierApplication {
         return MODIFIERS.get(mixinClassName).shouldApplyMixin(targetClassName);
     }
 
-    private void applyModifier(IClassBytecodeProvider bytecodeProvider, TargetModifier modifier) {
+    private void applyModifier(IClassBytecodeProvider bytecodeProvider, MixinTargetModifier modifier) {
         String mixinClassName = modifier.getMixinClassName();
         ClassNode cNode;
         try {
@@ -157,7 +158,7 @@ public class TargetModifierApplication {
             return;
         }
         if (targetIndex > -1) {
-            values.set(targetIndex, mixins);
+            values.set(targetIndex, new ArrayList<>(mixins));
         } else {
             values.add("targets");
             values.add(new ArrayList<>(mixins));

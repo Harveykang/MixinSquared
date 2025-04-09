@@ -4,20 +4,62 @@ import com.llamalad7.mixinextras.utils.ClassGenUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.launch.platform.container.IContainerHandle;
-import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.service.*;
+import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.util.ReEntranceLock;
+
+import java.util.Collection;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 
 public class MixinServiceWrapper implements IMixinService, IClassBytecodeProvider {
     private final IMixinService service;
 
     public MixinServiceWrapper(IMixinService service) {
         this.service = service;
+    }
+
+    @Override
+    public IClassBytecodeProvider getBytecodeProvider() {
+        return this;
+    }
+
+    @Override
+    public ClassNode getClassNode(String name) throws ClassNotFoundException, IOException {
+        byte[] bytes = ClassGenUtils.getDefinitions().get(name.replace('/', '.'));
+        if (bytes == null) {
+            return service.getBytecodeProvider().getClassNode(name);
+        }
+        MixinTargetsModifierApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
+        ClassNode node = new ClassNode();
+        new ClassReader(bytes).accept(node, 0);
+        return node;
+    }
+
+    @Override
+    public ClassNode getClassNode(String name, boolean runTransformers) throws ClassNotFoundException, IOException {
+        byte[] bytes = ClassGenUtils.getDefinitions().get(name.replace('/', '.'));
+        if (bytes == null) {
+            return service.getBytecodeProvider().getClassNode(name, runTransformers);
+        }
+        MixinTargetsModifierApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
+        ClassNode node = new ClassNode();
+        new ClassReader(bytes).accept(node, 0);
+        return node;
+    }
+
+    @Override
+    public ClassNode getClassNode(String name, boolean runTransformers, int readerFlags) throws ClassNotFoundException, IOException {
+        byte[] bytes = ClassGenUtils.getDefinitions().get(name.replace('/', '.'));
+        if (bytes == null) {
+            return service.getBytecodeProvider().getClassNode(name, runTransformers, readerFlags);
+        }
+        MixinTargetsModifierApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
+        ClassNode node = new ClassNode();
+        new ClassReader(bytes).accept(node, readerFlags);
+        return node;
     }
 
     @Override
@@ -68,11 +110,6 @@ public class MixinServiceWrapper implements IMixinService, IClassBytecodeProvide
     @Override
     public IClassProvider getClassProvider() {
         return service.getClassProvider();
-    }
-
-    @Override
-    public IClassBytecodeProvider getBytecodeProvider() {
-        return this;
     }
 
     @Override
@@ -128,41 +165,5 @@ public class MixinServiceWrapper implements IMixinService, IClassBytecodeProvide
     @Override
     public ILogger getLogger(String name) {
         return service.getLogger(name);
-    }
-
-    @Override
-    public ClassNode getClassNode(String name) throws ClassNotFoundException, IOException {
-        byte[] bytes = ClassGenUtils.getDefinitions().get(name.replace('/', '.'));
-        if (bytes == null) {
-            return service.getBytecodeProvider().getClassNode(name);
-        }
-        TargetModifierApplication.LOGGER.info("Redirecting get class node for {}", name);
-        ClassNode node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
-        return node;
-    }
-
-    @Override
-    public ClassNode getClassNode(String name, boolean runTransformers) throws ClassNotFoundException, IOException {
-        byte[] bytes = ClassGenUtils.getDefinitions().get(name.replace('/', '.'));
-        if (bytes == null) {
-            return service.getBytecodeProvider().getClassNode(name, runTransformers);
-        }
-        TargetModifierApplication.LOGGER.info("Redirecting get class node for {}", name);
-        ClassNode node = new ClassNode();
-        new ClassReader(bytes).accept(node, 0);
-        return node;
-    }
-
-    @Override
-    public ClassNode getClassNode(String name, boolean runTransformers, int readerFlags) throws ClassNotFoundException, IOException {
-        byte[] bytes = ClassGenUtils.getDefinitions().get(name.replace('/', '.'));
-        if (bytes == null) {
-            return service.getBytecodeProvider().getClassNode(name, runTransformers, readerFlags);
-        }
-        TargetModifierApplication.LOGGER.info("Redirecting get class node for {}", name);
-        ClassNode node = new ClassNode();
-        new ClassReader(bytes).accept(node, readerFlags);
-        return node;
     }
 }
