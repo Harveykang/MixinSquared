@@ -16,10 +16,9 @@ public interface MixinMemberCanceller {
      */
     boolean shouldCancelMethod(List<String> targetClassNames,
                                String mixinClassName,
-                               List<String> targetMethodNames,
+                               List<String> targetMethodDescs,
                                String mixinMethodName,
-                               String mixinMethodDesc,
-                               List<String> mixinParameterNames);
+                               String mixinMethodDesc);
 
     /**
      * Prevents the certain mixin field from being applied to the target classes.

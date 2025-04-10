@@ -55,11 +55,11 @@ public final class MixinSquaredApiImplLoader {
             }
         });
         FabricLoader.getInstance().getEntrypointContainers("mixinsquared-member-canceller", MixinMemberCanceller.class).forEach(container -> {
-            String id = container.getProvider().getMetadata().getId();
             try {
                 MixinMemberCanceller canceller = container.getEntrypoint();
                 MixinMemberCancellerRegistrar.register(canceller);
             } catch (Throwable e) {
+                String id = container.getProvider().getMetadata().getId();
                 System.err.printf("Mod %s provides a broken MixinMemberCanceller implementation:\n", id);
                 e.printStackTrace(System.err);
             }

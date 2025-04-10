@@ -14,14 +14,14 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 import org.spongepowered.asm.mixin.transformer.ext.IExtension;
 import org.spongepowered.asm.mixin.transformer.ext.ITargetClassContext;
 import org.spongepowered.asm.service.MixinService;
+import org.spongepowered.asm.util.Annotations;
 
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class ExtensionCancelMixinMember implements IExtension {
     static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared:node_canceller");
     private static final String SHADOW_DESC = Type.getDescriptor(Shadow.class);
-    static final List<MixinMemberCanceller> CANCELLERS = new CopyOnWriteArrayList<>();
+    static final List<MixinMemberCanceller> CANCELLERS = new ArrayList<>();
     // from MixinExtras com.llamalad7.mixinextras.transformer.MixinTransformerExtension
     private final Set<ClassNode> preparedMixins = Collections.newSetFromMap(new WeakHashMap<>());
     private final FieldReference<Object> field_MixinInfo$state;
@@ -103,11 +103,11 @@ public final class ExtensionCancelMixinMember implements IExtension {
         Iterator<MethodNode> iterator = methods.iterator();
         while (iterator.hasNext()) {
             MethodNode mNode = iterator.next();
-            List<String> targetMethodNames;
+            List<String> targetMethodDescs;
 
             VisibleAnnotations:
             if (mNode.visibleAnnotations == null || mNode.visibleAnnotations.isEmpty()) {
-                targetMethodNames = new ArrayList<>();
+                targetMethodDescs = new ArrayList<>();
             } else {
                 for (AnnotationNode aNode : mNode.visibleAnnotations) {
                     AdjustableAnnotationNode aaNode = AdjustableAnnotationNode.fromNode(aNode);
@@ -118,29 +118,18 @@ public final class ExtensionCancelMixinMember implements IExtension {
                     }
                     List<String> methodValue = opt.get();
                     // Copy to ensure the type is ArrayList (not Arrays$ArrayList).
-                    targetMethodNames = new ArrayList<>(methodValue);
+                    targetMethodDescs = new ArrayList<>(methodValue);
                     break VisibleAnnotations;
                 }
-                targetMethodNames = new ArrayList<>();
-            }
-
-            List<String> parameterNames;
-            if (mNode.parameters == null || mNode.parameters.isEmpty()) {
-                parameterNames = new ArrayList<>();
-            } else {
-                parameterNames = new ArrayList<>(mNode.parameters.size());
-                for (ParameterNode parameter : mNode.parameters) {
-                    parameterNames.add(parameter.name);
-                }
+                targetMethodDescs = new ArrayList<>();
             }
 
             for (MixinMemberCanceller canceller : cancellers) {
                 boolean b = canceller.shouldCancelMethod(targetClassNames,
                     mixinClassName,
-                    targetMethodNames,
+                    targetMethodDescs,
                     mNode.name,
-                    mNode.desc,
-                    parameterNames);
+                    mNode.desc);
                 if (b) {
                     iterator.remove();
                     LOGGER.warn("Cancelled mixin method {}#{} by {}", mixinClassName, mNode.desc, canceller.getClass().getName());
@@ -157,16 +146,10 @@ public final class ExtensionCancelMixinMember implements IExtension {
                              ClassNode classNode) {
         Iterator<FieldNode> iterator = fields.iterator();
         Set<String> removed = null;
-        Root:
         while (iterator.hasNext()) {
             FieldNode field = iterator.next();
-            // If the field
-            if (field.visibleAnnotations != null && !field.visibleAnnotations.isEmpty()) {
-                for (AnnotationNode aNode : field.visibleAnnotations) {
-                    if (SHADOW_DESC.equals(aNode.desc)) {
-                        continue Root;
-                    }
-                }
+            if (Annotations.getVisible(field, Shadow.class) != null) {
+                continue;
             }
 
             for (MixinMemberCanceller canceller : cancellers) {
@@ -205,7 +188,7 @@ public final class ExtensionCancelMixinMember implements IExtension {
                 if (removed.contains(fieldInsnNode.name)) {
                     int opcode = fieldInsnNode.getOpcode();
                     if (opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC) {
-                        throw new InvalidMixinMemberCancellerException("Cannot cancel field access in static initializer or constructor of " + mixinClassName + "#" + mNode.name + mNode.desc);
+                        throw new RuntimeException("Cannot cancel field access in static initializer or constructor of " + mixinClassName + "#" + mNode.name + mNode.desc);
                     }
                     iterator1.remove();
                 }

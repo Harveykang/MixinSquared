@@ -25,8 +25,6 @@
 package com.bawnorton.mixinsquared.platform.forge;
 
 import com.bawnorton.mixinsquared.MixinSquaredBootstrap;
-import com.bawnorton.mixinsquared.api.MixinAnnotationAdjuster;
-import com.bawnorton.mixinsquared.canceller.MixinCancellerRegistrar;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
