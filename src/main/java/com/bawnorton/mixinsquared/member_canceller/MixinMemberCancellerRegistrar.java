@@ -9,7 +9,7 @@ public class MixinMemberCancellerRegistrar {
      * @param canceller The MixinMemberCanceller to register.
      */
     public static void register(MixinMemberCanceller canceller) {
-        ExtensionCancelMixinMember.CANCELLERS.add(canceller);
-        ExtensionCancelMixinMember.LOGGER.debug("Registered mixin member canceller {}", canceller.getClass().getName());
+        ExtensionCancelMemberApplication.CANCELLERS.add(canceller);
+        ExtensionCancelMemberApplication.LOGGER.debug("Registered mixin member canceller {}", canceller.getClass().getName());
     }
 }

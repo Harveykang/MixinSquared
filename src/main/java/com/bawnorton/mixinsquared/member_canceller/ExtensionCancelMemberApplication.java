@@ -18,7 +18,7 @@ import org.spongepowered.asm.util.Annotations;
 
 import java.util.*;
 
-public final class ExtensionCancelMixinMember implements IExtension {
+public final class ExtensionCancelMemberApplication implements IExtension {
     static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared:node_canceller");
     private static final String SHADOW_DESC = Type.getDescriptor(Shadow.class);
     static final List<MixinMemberCanceller> CANCELLERS = new ArrayList<>();
@@ -27,7 +27,7 @@ public final class ExtensionCancelMixinMember implements IExtension {
     private final FieldReference<Object> field_MixinInfo$state;
     private final FieldReference<ClassNode> field_MixinInfo$State$classNode;
 
-    public ExtensionCancelMixinMember() {
+    public ExtensionCancelMemberApplication() {
         try {
             Class<?> infoClass = Class.forName("org.spongepowered.asm.mixin.transformer.MixinInfo");
             field_MixinInfo$state = new FieldReference<>(infoClass, "state");
