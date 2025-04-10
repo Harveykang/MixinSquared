@@ -27,7 +27,7 @@ package com.bawnorton.mixinsquared;
 import com.bawnorton.mixinsquared.adjuster.ExtensionAnnotationAdjust;
 import com.bawnorton.mixinsquared.canceller.ExtensionCancelApplication;
 import com.bawnorton.mixinsquared.ext.ExtensionRegistrar;
-import com.bawnorton.mixinsquared.member_canceller.ExtensionCancelMemberApplication;
+import com.bawnorton.mixinsquared.member_canceller.ExtensionMemberCancelApplication;
 import com.bawnorton.mixinsquared.selector.DynamicSelectorHandler;
 import org.spongepowered.asm.mixin.injection.selectors.TargetSelector;
 
@@ -52,7 +52,7 @@ public final class MixinSquaredBootstrap {
         if (runtime) {
             ExtensionRegistrar.register(new ExtensionCancelApplication());
             ExtensionRegistrar.register(new ExtensionAnnotationAdjust());
-            ExtensionRegistrar.register(new ExtensionCancelMemberApplication());
+            ExtensionRegistrar.register(new ExtensionMemberCancelApplication());
         }
     }
 }
