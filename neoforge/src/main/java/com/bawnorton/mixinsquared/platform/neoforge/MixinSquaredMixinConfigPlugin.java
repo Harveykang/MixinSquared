@@ -51,7 +51,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        return MixinTargetsModifierApplication.getInstance().shouldApplyMixin(targetClassName, mixinClassName);
+        return true;
     }
 
     @Override
@@ -61,6 +61,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public List<String> getMixins() {
+        MixinSquaredBootstrap.reOrderExtensions();
         return MixinTargetsModifierApplication.getInstance().applyModifiers();
     }
 

@@ -60,6 +60,7 @@ public class MixinSquaredMixinConfigPlugin implements IMixinConfigPlugin {
 
     @Override
     public List<String> getMixins() {
+        MixinSquaredBootstrap.reOrderExtensions();
         return MixinTargetsModifierApplication.getInstance().applyModifiers();
     }
 

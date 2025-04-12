@@ -31,31 +31,35 @@ import org.spongepowered.asm.mixin.transformer.ext.IExtensionRegistry;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public final class ExtensionsExtension {
     private final Extensions reference;
 
     private final FieldReference<List<IExtension>> extensionsField;
-    private final FieldReference<Map<Class<? extends IExtension>, IExtension>> extensionMapField;
+    private final FieldReference<List<IExtension>> activeExtensionsField;
 
     public ExtensionsExtension(Extensions reference) {
         this.reference = reference;
         extensionsField = new FieldReference<>(reference.getClass(), "extensions");
-        extensionMapField = new FieldReference<>(reference.getClass(), "extensionMap");
+        activeExtensionsField = new FieldReference<>(reference.getClass(), "activeExtensions");
     }
 
-    public static Optional<ExtensionsExtension> tryAs(IExtensionRegistry reference) {
+    public static void tryAs(IExtensionRegistry reference, Consumer<ExtensionsExtension> consumer) {
         if (reference instanceof Extensions) {
-            return Optional.of(new ExtensionsExtension((Extensions) reference));
+            consumer.accept(new ExtensionsExtension((Extensions) reference));
         }
-        return Optional.empty();
     }
 
     public List<IExtension> getExtensions() {
         return extensionsField.get(this.reference);
     }
 
-    public Map<Class<? extends IExtension>, IExtension> getExtensionMap() {
-        return extensionMapField.get(this.reference);
+    public List<IExtension> getActiveExtensions() {
+        return reference.getActiveExtensions();
+    }
+
+    public void setActiveExtensions(List<IExtension> extensions) {
+        activeExtensionsField.set(this.reference, extensions);
     }
 }
