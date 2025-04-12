@@ -48,52 +48,49 @@ public final class ExtensionMemberCancelApplication implements IExtension {
         if (CANCELLERS.isEmpty()) {
             return;
         }
-        Optional<TargetClassContextExtension> optional = TargetClassContextExtension.tryAs(context);
-        if (!optional.isPresent()) {
-            return;
-        }
-        TargetClassContextExtension contextExtension = optional.get();
-        SortedSet<IMixinInfo> mixins = contextExtension.getMixins();
-        for (IMixinInfo mixin : mixins) {
-            // Get the internal class node of the mixinInfo.
-            ClassNode cNode = field_MixinInfo$State$classNode.get(field_MixinInfo$state.get(mixin));
-            if (preparedMixins.contains(cNode)) {
-                continue;
-            }
+        TargetClassContextExtension.tryAs(context, contextExtension -> {
+            SortedSet<IMixinInfo> mixins = contextExtension.getMixins();
+            for (IMixinInfo mixin : mixins) {
+                // Get the internal class node of the mixinInfo.
+                ClassNode cNode = field_MixinInfo$State$classNode.get(field_MixinInfo$state.get(mixin));
+                if (preparedMixins.contains(cNode)) {
+                    continue;
+                }
 
-            String mixinClassName = mixin.getClassName();
-            List<String> l = mixin.getTargetClasses();
-            List<String> targetClassNames = new ArrayList<>(l.size());
-            for (String s : l) {
-                String string = s.replaceAll("/", ".");
-                targetClassNames.add(string);
-            }
+                String mixinClassName = mixin.getClassName();
+                List<String> l = mixin.getTargetClasses();
+                List<String> targetClassNames = new ArrayList<>(l.size());
+                for (String s : l) {
+                    String string = s.replaceAll("/", ".");
+                    targetClassNames.add(string);
+                }
 
-            // Filter out cancellers that don't applied to the given mixin class.
-            List<MixinMemberCanceller> cancellers = null;
-            for (MixinMemberCanceller canceller : CANCELLERS) {
-                if (canceller.preCancel(targetClassNames, mixinClassName)) {
-                    if (cancellers == null) {
-                        cancellers = new ArrayList<>(2);
+                // Filter out cancellers that don't applied to the given mixin class.
+                List<MixinMemberCanceller> cancellers = null;
+                for (MixinMemberCanceller canceller : CANCELLERS) {
+                    if (canceller.preCancel(targetClassNames, mixinClassName)) {
+                        if (cancellers == null) {
+                            cancellers = new ArrayList<>(2);
+                        }
+                        cancellers.add(canceller);
                     }
-                    cancellers.add(canceller);
                 }
-            }
 
-            if (cancellers != null) {
-                List<MethodNode> methods = cNode.methods;
-                if (methods != null && !methods.isEmpty()) {
-                    cancelMethod(targetClassNames, mixinClassName, cancellers, methods);
+                if (cancellers != null) {
+                    List<MethodNode> methods = cNode.methods;
+                    if (methods != null && !methods.isEmpty()) {
+                        cancelMethod(targetClassNames, mixinClassName, cancellers, methods);
+                    }
+                    List<FieldNode> fields = cNode.fields;
+                    if (fields != null && !fields.isEmpty()) {
+                        // Assert all accesses from mixin methods to the cancelled fields are removed.
+                        cancelField(targetClassNames, mixinClassName, cancellers, fields, cNode);
+                    }
                 }
-                List<FieldNode> fields = cNode.fields;
-                if (fields != null && !fields.isEmpty()) {
-                    // Assert all accesses from mixin methods to the cancelled fields are removed.
-                    cancelField(targetClassNames, mixinClassName, cancellers, fields, cNode);
-                }
-            }
 
-            preparedMixins.add(cNode);
-        }
+                preparedMixins.add(cNode);
+            }
+        });
     }
 
     private void cancelMethod(List<String> targetClassNames,
