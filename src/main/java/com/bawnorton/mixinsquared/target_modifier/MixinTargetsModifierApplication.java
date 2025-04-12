@@ -3,6 +3,7 @@ package com.bawnorton.mixinsquared.target_modifier;
 import com.bawnorton.mixinsquared.api.MixinTargetModifier;
 import com.bawnorton.mixinsquared.canceller.MixinCancellerRegistrar;
 import com.bawnorton.mixinsquared.reflection.FieldReference;
+import com.bawnorton.mixinsquared.reflection.MixinTransformerExtension;
 import com.bawnorton.mixinsquared.tools.ClassRenamer;
 import com.llamalad7.mixinextras.utils.ClassGenUtils;
 import org.objectweb.asm.Type;
@@ -28,18 +29,12 @@ public class MixinTargetsModifierApplication {
     static MixinTargetsModifierApplication INSTANCE;
     private static final FieldReference<String> pluginClassName;
     private static final FieldReference<IMixinService> mixinService;
-    private static final FieldReference<List<IMixinConfig>> pendingConfigs;
-    private static final FieldReference<?> mixinProcessor;
 
     static {
         try {
             Class<?> mixinConfigClass = Class.forName("org.spongepowered.asm.mixin.transformer.MixinConfig");
             pluginClassName = new FieldReference<>(mixinConfigClass, "pluginClassName");
             mixinService = new FieldReference<>(mixinConfigClass, "service");
-            Class<?> mixinProcessorClass = Class.forName("org.spongepowered.asm.mixin.transformer.MixinProcessor");
-            pendingConfigs = new FieldReference<>(mixinProcessorClass, "pendingConfigs");
-            Class<?> mixinTransformerClass = Class.forName("org.spongepowered.asm.mixin.transformer.MixinTransformer");
-            mixinProcessor = new FieldReference<>(mixinTransformerClass, "processor");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -77,19 +72,19 @@ public class MixinTargetsModifierApplication {
     public List<String> applyModifiers() {
         IMixinTransformer activeTransformer =
             (IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer();
-        // FIXME: this is unstable, but it works for now
-        List<IMixinConfig> pendingConfigs = MixinTargetsModifierApplication.pendingConfigs.get(
-            mixinProcessor.get(activeTransformer));
+        List<IMixinConfig> pendingConfigs = MixinTransformerExtension.tryAs(activeTransformer)
+            .map(MixinTransformerExtension::getPendingConfigs)
+            .orElseThrow(() -> new UnsupportedOperationException("Unsupported mixin transformer: " + activeTransformer.getClass()));
         IMixinConfig mixinConfig = null;
         String pluginClass = mixinSquaredPlugin.getClass().getName();
         for (IMixinConfig config : pendingConfigs) {
-            mixinConfig = config;
-            String aPlugin = pluginClassName.get(mixinConfig);
+            String aPlugin = pluginClassName.get(config);
             if (pluginClass.equals(aPlugin)) {
+                mixinConfig = config;
                 break;
             }
         }
-        assert pluginClass.equals(pluginClassName.get(mixinConfig));
+        assert mixinConfig != null;
         IMixinService service = mixinService.get(mixinConfig);
         MixinServiceWrapper mixinServiceWrapper;
         if (!(service instanceof MixinServiceWrapper)) {
