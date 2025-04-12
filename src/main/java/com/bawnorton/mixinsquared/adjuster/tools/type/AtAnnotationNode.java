@@ -22,30 +22,35 @@
  * SOFTWARE.
  */
 
-package com.bawnorton.mixinsquared.reflection;
+package com.bawnorton.mixinsquared.adjuster.tools.type;
 
-import java.lang.reflect.Method;
+import com.bawnorton.mixinsquared.adjuster.tools.AdjustableAtNode;
+import org.jetbrains.annotations.ApiStatus;
+import org.objectweb.asm.tree.AnnotationNode;
+import java.util.function.UnaryOperator;
 
-public final class MethodReference<T> {
-    private final Method method;
-
-    public MethodReference(Class<?> clazz, String methodName, Class<?>... parameterTypes) {
-        Method method;
-        try {
-            method = clazz.getDeclaredMethod(methodName, parameterTypes);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-        method.setAccessible(true);
-        this.method = method;
+public interface AtAnnotationNode extends RemappableAnnotationNode {
+    default AdjustableAtNode getAt() {
+        return this.<AnnotationNode>get("at")
+                   .map(AdjustableAtNode::new)
+                   .orElse(null);
     }
 
-    @SuppressWarnings("unchecked")
-    public T invoke(Object instance, Object... args) {
-        try {
-            return (T) method.invoke(instance, args);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
+    default void setAt(AdjustableAtNode at) {
+        this.set("at", at);
+    }
+
+    default AtAnnotationNode withAt(UnaryOperator<AdjustableAtNode> at) {
+        this.setAt(at.apply(this.getAt()));
+        return this;
+    }
+
+    @Override
+    @ApiStatus.Internal
+    default void applyRefmap(UnaryOperator<String> refmapApplicator) {
+        this.withAt(at -> {
+            at.applyRefmap(refmapApplicator);
+            return at;
+        });
     }
 }

@@ -24,6 +24,7 @@
 
 package com.bawnorton.mixinsquared.canceller;
 
+import com.bawnorton.mixinsquared.ext.MixinSquaredExtension;
 import com.bawnorton.mixinsquared.reflection.TargetClassContextExtension;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.logging.ILogger;
@@ -36,7 +37,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
-public final class ExtensionCancelApplication implements IExtension {
+public final class ExtensionCancelApplication implements IExtension, MixinSquaredExtension {
     private static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared-canceller");
 
     @Override
@@ -46,7 +47,7 @@ public final class ExtensionCancelApplication implements IExtension {
 
     @Override
     public void preApply(ITargetClassContext context) {
-        TargetClassContextExtension.tryAs(context).ifPresent(contextExtension -> {
+        TargetClassContextExtension.tryAs(context, contextExtension -> {
             SortedSet<IMixinInfo> mixins = contextExtension.getMixins();
             mixins.removeIf(mixin -> {
                 List<String> targetClassNames = mixin.getTargetClasses().stream().map(s -> s.replaceAll("/", ".")).collect(Collectors.toList());

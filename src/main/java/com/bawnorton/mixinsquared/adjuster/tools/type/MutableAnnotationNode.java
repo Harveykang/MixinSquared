@@ -22,30 +22,23 @@
  * SOFTWARE.
  */
 
-package com.bawnorton.mixinsquared.reflection;
+package com.bawnorton.mixinsquared.adjuster.tools.type;
 
-import java.lang.reflect.Method;
+import org.objectweb.asm.Type;
+import java.util.Optional;
 
-public final class MethodReference<T> {
-    private final Method method;
+public interface MutableAnnotationNode {
+    <T> Optional<T> get(String key);
 
-    public MethodReference(Class<?> clazz, String methodName, Class<?>... parameterTypes) {
-        Method method;
-        try {
-            method = clazz.getDeclaredMethod(methodName, parameterTypes);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-        method.setAccessible(true);
-        this.method = method;
-    }
+    <T> void set(String key, T value);
 
-    @SuppressWarnings("unchecked")
-    public T invoke(Object instance, Object... args) {
-        try {
-            return (T) method.invoke(instance, args);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
+    default <T extends Enum<T>> Optional<T> getEnum(String key, Class<T> enumType) {
+        return this.<String[]>get(key).map(value -> {
+            if (value.length < 2) return null;
+            if (enumType.getName().equals(Type.getType(value[0]).getClassName())) {
+                return Enum.valueOf(enumType, value[1]);
+            }
+            return null;
+        });
     }
 }
