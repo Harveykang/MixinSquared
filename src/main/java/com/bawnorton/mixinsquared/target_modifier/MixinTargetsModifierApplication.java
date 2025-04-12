@@ -72,6 +72,7 @@ public class MixinTargetsModifierApplication {
     public List<String> applyModifiers() {
         IMixinTransformer activeTransformer =
             (IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer();
+        // FIXME: this is unsafe, fix it
         List<IMixinConfig> pendingConfigs = MixinTransformerExtension.tryAs(activeTransformer)
             .map(MixinTransformerExtension::getPendingConfigs)
             .orElseThrow(() -> new UnsupportedOperationException("Unsupported mixin transformer: " + activeTransformer.getClass()));

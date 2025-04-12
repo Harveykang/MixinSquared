@@ -3,6 +3,7 @@ package com.bawnorton.mixinsquared.reflection;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -39,14 +40,23 @@ public class MixinTransformerExtension {
     }
 
     public static void tryAs(IMixinTransformer reference, Consumer<MixinTransformerExtension> consumer) {
-        if (reference.getClass().getName().equals("org.spongepowered.asm.mixin.transformer.MixinTransformer")) {
-            consumer.accept(new MixinTransformerExtension(reference));
-        }
+        tryAs(reference).ifPresent(consumer);
     }
 
     public static Optional<MixinTransformerExtension> tryAs(IMixinTransformer reference) {
         if (reference.getClass().getName().equals("org.spongepowered.asm.mixin.transformer.MixinTransformer")) {
             return Optional.of(new MixinTransformerExtension(reference));
+        }
+        Object delegate;
+        try {
+            Field field = reference.getClass().getDeclaredField("delegate");
+            field.setAccessible(true);
+            delegate = field.get(reference);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            return Optional.empty();
+        }
+        if (delegate instanceof IMixinTransformer) {
+            return tryAs((IMixinTransformer) delegate);
         } else {
             return Optional.empty();
         }
