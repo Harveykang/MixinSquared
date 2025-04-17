@@ -70,7 +70,7 @@ public final class ExtensionMemberCancelApplication implements IExtension {
                 for (MixinMemberCanceller canceller : CANCELLERS) {
                     if (canceller.preCancel(targetClassNames, mixinClassName)) {
                         if (cancellers == null) {
-                            cancellers = new ArrayList<>(2);
+                            cancellers = new LinkedList<>();
                         }
                         cancellers.add(canceller);
                     }
@@ -183,11 +183,25 @@ public final class ExtensionMemberCancelApplication implements IExtension {
                 }
                 FieldInsnNode fieldInsnNode = (FieldInsnNode) iNode;
                 if (removed.contains(fieldInsnNode.name)) {
-                    int opcode = fieldInsnNode.getOpcode();
-                    if (opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC) {
-                        throw new RuntimeException("Cannot cancel field access in static initializer or constructor of " + mixinClassName + "#" + mNode.name + mNode.desc);
+//					int opcode = fieldInsnNode.getOpcode();
+//					if (opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC) {
+//						throw new RuntimeException("Cannot cancel field access in static initializer or constructor of " + mixinClassName + "#" + mNode.desc);
+//					}
+
+                    // remove code between line numbers
+                    // find previous line number
+                    while (iterator1.hasPrevious() &&
+                           !(iterator1.previous() instanceof LineNumberNode)){
+                        iterator1.remove();
                     }
-                    iterator1.remove();
+                    iterator1.next();
+
+                    // find next line number
+                    while (iterator1.hasNext() &&
+                           !(iterator1.next() instanceof LineNumberNode)) {
+                        iterator1.remove();
+                    }
+                    // iterator1.previous(); // the current is line number, don't need call previous()
                 }
             }
         }
