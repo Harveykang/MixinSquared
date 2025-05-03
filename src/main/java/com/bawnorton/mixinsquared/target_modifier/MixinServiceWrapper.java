@@ -14,6 +14,11 @@ import java.util.Collection;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Wrap the IMixinService to redirect getClassNode calls to our custom implementation.
+ * Which provides the modified bytecode for generated mixins.
+ * TODO: Change the usage of ClassGenUtils to our implementation.
+ */
 public class MixinServiceWrapper implements IMixinService, IClassBytecodeProvider {
     private final IMixinService delegate;
 
