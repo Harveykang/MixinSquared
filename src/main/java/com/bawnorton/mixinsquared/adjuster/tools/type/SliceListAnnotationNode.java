@@ -35,7 +35,19 @@ import java.util.function.UnaryOperator;
 public interface SliceListAnnotationNode extends RemappableAnnotationNode {
     default List<AdjustableSliceNode> getSlice() {
         return this.<List<AnnotationNode>>get("slice")
-                   .map(nodes -> AdjustableAnnotationNode.fromList(nodes, AdjustableSliceNode::new))
+                   .map(nodes -> {
+                       List<AdjustableSliceNode> sliceNodes = AdjustableAnnotationNode.fromList(nodes, AdjustableSliceNode::new);
+                       sliceNodes.forEach(slice -> {
+                           slice.withFrom(from -> {
+                               from.setRemapper(this.getRemapper());
+                               return from;
+                           }).withTo(to -> {
+                               to.setRemapper(this.getRemapper());
+                               return to;
+                           });
+                       });
+                       return sliceNodes;
+                   })
                    .orElse(new ArrayList<>());
     }
 

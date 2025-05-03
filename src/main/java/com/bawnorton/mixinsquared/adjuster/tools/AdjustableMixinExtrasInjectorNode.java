@@ -26,11 +26,9 @@ package com.bawnorton.mixinsquared.adjuster.tools;
 
 import com.bawnorton.mixinsquared.adjuster.tools.type.AtListAnnotationNode;
 import com.bawnorton.mixinsquared.adjuster.tools.type.MethodListAnnotationNode;
-import com.bawnorton.mixinsquared.adjuster.tools.type.RemappableAnnotationNode;
 import com.bawnorton.mixinsquared.adjuster.tools.type.SliceListAnnotationNode;
 import org.jetbrains.annotations.ApiStatus;
 import org.objectweb.asm.tree.AnnotationNode;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
