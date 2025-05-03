@@ -28,11 +28,14 @@ import com.bawnorton.mixinsquared.adjuster.tools.type.MutableAnnotationNode;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.util.Annotations;
 import org.spongepowered.asm.util.asm.ASM;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,31 +101,10 @@ public abstract class AdjustableAnnotationNode extends AnnotationNode implements
                 valueMap.put(key, ((Type) value).getClassName() + ".class");
             } else if (value instanceof AnnotationNode) {
                 valueMap.put(key, AdjustableAnnotationNode.fromNode((AnnotationNode) value).toString());
-            } else if (value instanceof List) {
-                List<?> list = (List<?>) value;
-                if (list.isEmpty()) {
-                    valueMap.put(key, "{}");
-                } else {
-                    StringBuilder listBuilder = new StringBuilder();
-                    listBuilder.append('{');
-                    for (int j = 0; j < list.size(); j++) {
-                        Object element = list.get(j);
-                        if (element instanceof String) {
-                            listBuilder.append('"').append(element).append('"');
-                        } else if (element instanceof Type) {
-                            listBuilder.append(((Type) element).getClassName()).append(".class");
-                        } else if (element instanceof AnnotationNode) {
-                            listBuilder.append(AdjustableAnnotationNode.fromNode((AnnotationNode) element).toString());
-                        } else {
-                            listBuilder.append(element);
-                        }
-                        if (j < list.size() - 1) {
-                            listBuilder.append(", ");
-                        }
-                    }
-                    listBuilder.append('}');
-                    valueMap.put(key, listBuilder.toString());
-                }
+            } else if (value instanceof Iterable) {
+                valueMap.put(key, iterableToString((Iterable<?>) value));
+            } else if (value instanceof Object[]) {
+                valueMap.put(key, iterableToString(Arrays.asList((Object[]) value)));
             } else {
                 valueMap.put(key, value);
             }
@@ -138,6 +120,28 @@ public abstract class AdjustableAnnotationNode extends AnnotationNode implements
         return sb.toString();
     }
 
+    private StringBuilder iterableToString(Iterable<?> iterable) {
+        StringBuilder iterableBuilder = new StringBuilder();
+        iterableBuilder.append('{');
+        for (Object element : iterable) {
+            if (element instanceof String) {
+                iterableBuilder.append('"').append(element).append('"');
+            } else if (element instanceof Type) {
+                iterableBuilder.append(((Type) element).getClassName()).append(".class");
+            } else if (element instanceof AnnotationNode) {
+                iterableBuilder.append(AdjustableAnnotationNode.fromNode((AnnotationNode) element).toString());
+            } else if (element instanceof Iterable<?>) {
+                iterableBuilder.append(iterableToString((Iterable<?>) element));
+            } else if (element instanceof Object[]) {
+                iterableBuilder.append(iterableToString(Arrays.asList((Object[]) element)));
+            } else {
+                iterableBuilder.append(element);
+            }
+        }
+        iterableBuilder.append('}');
+        return iterableBuilder;
+    }
+
     public AdjustableAnnotationNode copy() {
         AnnotationNode copy = new AnnotationNode(ASM.API_VERSION, this.desc);
         this.accept(copy);
@@ -148,7 +152,7 @@ public abstract class AdjustableAnnotationNode extends AnnotationNode implements
         AT(AdjustableAtNode::new, At.class),
         CONSTANT(AdjustableConstantNode::new, Constant.class),
         DESC(AdjustableDescNode::new, Desc.class),
-        NEXT(AdjustableNextNode::new, "Lorg/spongepowered/asm.mixin/injection/Next"),
+        NEXT(AdjustableNextNode::new, "Lorg/spongepowered/asm/mixin/injection/Next"),
         SLICE(AdjustableSliceNode::new, Slice.class),
         INJECT(AdjustableInjectNode::new, Inject.class),
         MODIFY_ARG(AdjustableModifyArgNode::new, ModifyArg.class),
@@ -161,7 +165,9 @@ public abstract class AdjustableAnnotationNode extends AnnotationNode implements
         OVERWRITE(AdjustableOverwriteNode::new, Overwrite.class),
         REDIRECT(AdjustableRedirectNode::new, Redirect.class),
         WRAP_OPERATION(AdjustableWrapOperationNode::new, "Lcom/llamalad7/mixinextras/injector/wrapoperation/WrapOperation;"),
-        WRAP_WITH_CONDITION(AdjustableWrapWithConditionNode::new, "Lcom/llamalad7/mixinextras/injector/v2/WrapWithCondition;");
+        WRAP_WITH_CONDITION(AdjustableWrapWithConditionNode::new, "Lcom/llamalad7/mixinextras/injector/v2/WrapWithCondition;"),
+        INVOKER(AdjustableInvokerNode::new, Invoker.class),
+        ACCESSOR(AdjustableAccessorNode::new, Accessor.class);
 
         private final AdjustableAnnotationNodeFactory<?> factory;
         private final String annotationClassDesc;

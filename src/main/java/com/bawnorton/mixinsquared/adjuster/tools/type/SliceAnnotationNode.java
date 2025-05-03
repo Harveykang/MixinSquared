@@ -32,7 +32,17 @@ import java.util.function.UnaryOperator;
 public interface SliceAnnotationNode extends RemappableAnnotationNode {
     default AdjustableSliceNode getSlice() {
         return this.<AnnotationNode>get("slice")
-                   .map(AdjustableSliceNode::new)
+                   .map(node -> {
+                       AdjustableSliceNode slice = new AdjustableSliceNode(node);
+                       slice.withFrom(from -> {
+                           from.setRemapper(this.getRemapper());
+                           return from;
+                       }).withTo(to -> {
+                           to.setRemapper(this.getRemapper());
+                           return to;
+                       });
+                       return slice;
+                   })
                    .orElse(AdjustableSliceNode.defaultNode());
     }
 

@@ -26,6 +26,7 @@ package com.bawnorton.mixinsquared.adjuster.tools.type;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.spongepowered.asm.mixin.injection.At;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 
 public interface RemappableAnnotationNode extends MutableAnnotationNode {
@@ -43,17 +44,17 @@ public interface RemappableAnnotationNode extends MutableAnnotationNode {
     }
 
     /**
-     * @see #applyRefmap()
      * @param refmapApplicator The function to apply to the refmap keys in the annotation.
+     * @see #applyRefmap()
      */
     @ApiStatus.Internal
     void applyRefmap(UnaryOperator<String> refmapApplicator);
 
     @ApiStatus.Internal
-    void setRemapper(Runnable remapper);
+    Consumer<RemappableAnnotationNode> getRemapper();
 
     @ApiStatus.Internal
-    Runnable getRemapper();
+    void setRemapper(Consumer<RemappableAnnotationNode> remapper);
 
     /**
      * Since the Annotation Adjuster interacts with what Mixin uses as keys for the refmap (i.e {@link At#target()}) you may want to
@@ -80,14 +81,15 @@ public interface RemappableAnnotationNode extends MutableAnnotationNode {
      * }
      * }
      * </pre>
+     *
      * @apiNote This will always remap regardless of whether you are in a dev environment or not,
      * as long as there is a refmap key value pair for the remappable elmenets they will be remapped
      */
     @ApiStatus.AvailableSince("0.3.0-beta.1")
     default void applyRefmap() {
-        Runnable remapper = getRemapper();
+        Consumer<RemappableAnnotationNode> remapper = getRemapper();
         if (remapper != null) {
-            remapper.run();
+            remapper.accept(this);
         }
     }
 }

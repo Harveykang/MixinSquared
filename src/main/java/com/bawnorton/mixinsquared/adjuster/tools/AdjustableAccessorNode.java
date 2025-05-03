@@ -22,34 +22,23 @@
  * SOFTWARE.
  */
 
-package com.bawnorton.mixinsquared.reflection;
+package com.bawnorton.mixinsquared.adjuster.tools;
 
-import org.jetbrains.annotations.ApiStatus;
-import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
-import org.spongepowered.asm.mixin.transformer.ext.ITargetClassContext;
-import java.util.Optional;
-import java.util.SortedSet;
-import java.util.function.Consumer;
+import org.objectweb.asm.tree.AnnotationNode;
+import java.util.function.UnaryOperator;
 
-@ApiStatus.Internal
-public final class TargetClassContextExtension {
-    private final ITargetClassContext reference;
-
-    private final FieldReference<SortedSet<?>> mixinsField;
-
-    public TargetClassContextExtension(ITargetClassContext reference) {
-        this.reference = reference;
-        mixinsField = new FieldReference<>(reference.getClass(), "mixins");
+public class AdjustableAccessorNode extends AdjustableAccessNode {
+    public AdjustableAccessorNode(AnnotationNode node) {
+        super(node);
     }
 
-    public static void tryAs(ITargetClassContext reference, Consumer<TargetClassContextExtension> consumer) {
-        if (reference.getClass().getName().equals("org.spongepowered.asm.mixin.transformer.TargetClassContext")) {
-            consumer.accept(new TargetClassContextExtension(reference));
-        }
+    public static AdjustableAccessorNode defaultNode() {
+        AnnotationNode node = new AnnotationNode(KnownAnnotations.ACCESSOR.desc());
+        return new AdjustableAccessorNode(node);
     }
 
-    @SuppressWarnings("unchecked")
-    public SortedSet<IMixinInfo> getMixins() {
-        return (SortedSet<IMixinInfo>) mixinsField.get(this.reference);
+    @Override
+    public AdjustableAccessorNode withValue(UnaryOperator<String> value) {
+        return (AdjustableAccessorNode) super.withValue(value);
     }
 }

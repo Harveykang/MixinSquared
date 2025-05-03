@@ -22,34 +22,32 @@
  * SOFTWARE.
  */
 
-package com.bawnorton.mixinsquared.reflection;
+package com.bawnorton.mixinsquared.adjuster.tools;
 
-import org.jetbrains.annotations.ApiStatus;
-import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
-import org.spongepowered.asm.mixin.transformer.ext.ITargetClassContext;
-import java.util.Optional;
-import java.util.SortedSet;
-import java.util.function.Consumer;
+import org.objectweb.asm.tree.AnnotationNode;
+import java.util.function.UnaryOperator;
 
-@ApiStatus.Internal
-public final class TargetClassContextExtension {
-    private final ITargetClassContext reference;
-
-    private final FieldReference<SortedSet<?>> mixinsField;
-
-    public TargetClassContextExtension(ITargetClassContext reference) {
-        this.reference = reference;
-        mixinsField = new FieldReference<>(reference.getClass(), "mixins");
+public abstract class AdjustableAccessNode extends RemapperHolderAnnotationNode {
+    protected AdjustableAccessNode(AnnotationNode node) {
+        super(node);
     }
 
-    public static void tryAs(ITargetClassContext reference, Consumer<TargetClassContextExtension> consumer) {
-        if (reference.getClass().getName().equals("org.spongepowered.asm.mixin.transformer.TargetClassContext")) {
-            consumer.accept(new TargetClassContextExtension(reference));
-        }
+    public String getValue() {
+        return this.<String>get("value").orElse("");
     }
 
-    @SuppressWarnings("unchecked")
-    public SortedSet<IMixinInfo> getMixins() {
-        return (SortedSet<IMixinInfo>) mixinsField.get(this.reference);
+    public void setValue(String value) {
+        if (value == null) throw new IllegalArgumentException("Value cannot be null");
+        this.set("value", value);
+    }
+
+    public AdjustableAccessNode withValue(UnaryOperator<String> value) {
+        this.setValue(value.apply(this.getValue()));
+        return this;
+    }
+
+    @Override
+    public void applyRefmap(UnaryOperator<String> refmapApplicator) {
+        this.withValue(refmapApplicator);
     }
 }
