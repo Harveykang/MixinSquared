@@ -32,7 +32,11 @@ import java.util.function.UnaryOperator;
 public interface AtAnnotationNode extends RemappableAnnotationNode {
     default AdjustableAtNode getAt() {
         return this.<AnnotationNode>get("at")
-                   .map(AdjustableAtNode::new)
+                   .map(node -> {
+                       AdjustableAtNode at = new AdjustableAtNode(node);
+                       at.setRemapper(this.getRemapper());
+                       return at;
+                   })
                    .orElse(null);
     }
 
