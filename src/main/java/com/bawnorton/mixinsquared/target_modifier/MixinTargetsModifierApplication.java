@@ -1,5 +1,7 @@
 package com.bawnorton.mixinsquared.target_modifier;
 
+import com.bawnorton.mixinsquared.adjuster.tools.AdjustableAnnotationNode;
+import com.bawnorton.mixinsquared.adjuster.tools.type.RemappableAnnotationNode;
 import com.bawnorton.mixinsquared.api.MixinTargetModifier;
 import com.bawnorton.mixinsquared.canceller.MixinCancellerRegistrar;
 import com.bawnorton.mixinsquared.reflection.FieldReference;
@@ -9,6 +11,7 @@ import com.llamalad7.mixinextras.utils.ClassGenUtils;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.spongepowered.asm.logging.ILogger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.MixinEnvironment;
@@ -129,8 +132,8 @@ public class MixinTargetsModifierApplication {
         List<String> targets = new ArrayList<>();
         AnnotationNode aNode = Annotations.getInvisible(cNode, Mixin.class);
         List<Object> values = aNode.values;
-        // The index of the "targets" key in the annotation
-        int targetIndex = -1;
+        // The index of the "value" key in the annotation
+        int valueIndex = -1;
         for (ListIterator<Object> iterator = values.listIterator(); iterator.hasNext(); ) {
             String key = (String) iterator.next();
             Object value = iterator.next();
@@ -143,17 +146,17 @@ public class MixinTargetsModifierApplication {
                 for (Type c : classes) {
                     targets.add(c.getClassName());
                 }
-                // remove the original Class type class targets
-                iterator.set(Collections.emptyList());
+                valueIndex = iterator.previousIndex();
+                // We'll overwrite the original Class type targets later
             } else if ("targets".equals(key)) {
                 @SuppressWarnings("unchecked")
                 List<String> originalTargets = (List<String>) value;
                 if (originalTargets.isEmpty()) {
                     continue;
                 }
+                // remove original class targets
                 targets.addAll(originalTargets);
-                targetIndex = iterator.previousIndex();
-                // We'll remove the original String type class targets later
+                iterator.set(Collections.emptyList());
             }
         }
         List<String> unmodifiableList = Collections.unmodifiableList(targets);
@@ -162,13 +165,37 @@ public class MixinTargetsModifierApplication {
         if (mixins == null || mixins == unmodifiableList) {
             return;
         }
-        // Remove the original String type class targets
-        // and write the modified targets to the annotation
-        if (targetIndex > -1) {
-            values.set(targetIndex, new ArrayList<>(mixins));
+        // Remove the original Class type targets
+        // and write the modified to the annotation
+        ArrayList<Type> targetTypes = new ArrayList<>(mixins.size());
+        mixins.forEach(target -> targetTypes.add(Type.getObjectType(target.replace('.', '/'))));
+        if (valueIndex > -1) {
+            values.set(valueIndex, targetTypes);
         } else {
-            values.add("targets");
-            values.add(new ArrayList<>(mixins));
+            values.add("value");
+            values.add(targetTypes);
+        }
+        for (MethodNode mNode : cNode.methods) {
+            if (mNode.visibleAnnotations == null) {
+                continue;
+            }
+            for (AnnotationNode aNode1 : mNode.visibleAnnotations) {
+                AdjustableAnnotationNode aaNode = AdjustableAnnotationNode.fromNode(aNode1);
+                if (aaNode instanceof RemappableAnnotationNode) {
+                    RemappableAnnotationNode raNode = (RemappableAnnotationNode) aaNode;
+                    // Apply refmap to method targets
+                    raNode.applyRefmap();
+                    // MUST remove the class name from the method targets
+                    List<String> ss = new ArrayList<>(aaNode.<List<String>>get("method").get());
+                    for (ListIterator<String> iterator = ss.listIterator(); iterator.hasNext(); ) {
+                        String s1 = iterator.next();
+                        if (s1.indexOf('(') > s1.indexOf(';')) {
+                            iterator.set(s1.substring(s1.indexOf(';') + 1));
+                        }
+                    }
+                    aaNode.set("method", ss);
+                }
+            }
         }
         // Rename the modified mixin class to a generated name
         String generatedMixin = generatedMixinPrefix +
