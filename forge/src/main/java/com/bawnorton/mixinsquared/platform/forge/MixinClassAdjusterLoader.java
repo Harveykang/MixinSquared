@@ -24,15 +24,15 @@
 
 package com.bawnorton.mixinsquared.platform.forge;
 
-import com.bawnorton.mixinsquared.api.MixinTargetModifier;
-import com.bawnorton.mixinsquared.target_modifier.MixinTargetsModifierRegistrar;
+import com.bawnorton.mixinsquared.api.MixinClassAdjuster;
+import com.bawnorton.mixinsquared.class_adjuster.MixinClassAdjusterRegistrar;
 
 import java.util.ServiceLoader;
 
-public final class MixinTargetsModifierLoader {
-    private static final ServiceLoader<MixinTargetModifier> ENTRYPOINTS = ServiceLoader.load(MixinTargetModifier.class);
+public final class MixinClassAdjusterLoader {
+    private static final ServiceLoader<MixinClassAdjuster> ENTRYPOINTS = ServiceLoader.load(MixinClassAdjuster.class);
 
     public static void load() {
-        ENTRYPOINTS.forEach(MixinTargetsModifierRegistrar::register);
+        ENTRYPOINTS.forEach(MixinClassAdjusterRegistrar::register);
     }
 }

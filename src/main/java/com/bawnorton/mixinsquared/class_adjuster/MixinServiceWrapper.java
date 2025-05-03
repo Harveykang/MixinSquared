@@ -1,4 +1,4 @@
-package com.bawnorton.mixinsquared.target_modifier;
+package com.bawnorton.mixinsquared.class_adjuster;
 
 import com.llamalad7.mixinextras.utils.ClassGenUtils;
 import org.objectweb.asm.ClassReader;
@@ -37,7 +37,7 @@ public class MixinServiceWrapper implements IMixinService, IClassBytecodeProvide
         if (bytes == null) {
             return delegate.getBytecodeProvider().getClassNode(name);
         }
-        MixinTargetsModifierApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
+        MixinClassAdjusterApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
         ClassNode node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
         return node;
@@ -49,7 +49,7 @@ public class MixinServiceWrapper implements IMixinService, IClassBytecodeProvide
         if (bytes == null) {
             return delegate.getBytecodeProvider().getClassNode(name, runTransformers);
         }
-        MixinTargetsModifierApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
+        MixinClassAdjusterApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
         ClassNode node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
         return node;
@@ -61,7 +61,7 @@ public class MixinServiceWrapper implements IMixinService, IClassBytecodeProvide
         if (bytes == null) {
             return delegate.getBytecodeProvider().getClassNode(name, runTransformers, readerFlags);
         }
-        MixinTargetsModifierApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
+        MixinClassAdjusterApplication.LOGGER.info("Redirecting IClassBytecodeProvider#getClassNode for {}", name);
         ClassNode node = new ClassNode();
         new ClassReader(bytes).accept(node, readerFlags);
         return node;

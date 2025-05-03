@@ -1,8 +1,6 @@
-package com.bawnorton.mixinsquared.target_modifier;
+package com.bawnorton.mixinsquared.class_adjuster;
 
-import com.bawnorton.mixinsquared.adjuster.tools.AdjustableAnnotationNode;
-import com.bawnorton.mixinsquared.adjuster.tools.type.RemappableAnnotationNode;
-import com.bawnorton.mixinsquared.api.MixinTargetModifier;
+import com.bawnorton.mixinsquared.api.MixinClassAdjuster;
 import com.bawnorton.mixinsquared.canceller.MixinCancellerRegistrar;
 import com.bawnorton.mixinsquared.reflection.FieldReference;
 import com.bawnorton.mixinsquared.reflection.MixinTransformerExtension;
@@ -17,6 +15,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
+import org.spongepowered.asm.mixin.refmap.IReferenceMapper;
+import org.spongepowered.asm.mixin.refmap.ReferenceMapper;
+import org.spongepowered.asm.mixin.refmap.RemappingReferenceMapper;
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 import org.spongepowered.asm.service.IClassBytecodeProvider;
 import org.spongepowered.asm.service.IMixinService;
@@ -27,9 +28,9 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 
-public class MixinTargetsModifierApplication {
-    static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared-target-modifier");
-    static MixinTargetsModifierApplication INSTANCE;
+public class MixinClassAdjusterApplication {
+    static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared-class-adjuster");
+    static MixinClassAdjusterApplication INSTANCE;
     private static final FieldReference<String> pluginClassName;
     private static final FieldReference<IMixinService> mixinService;
 
@@ -44,9 +45,9 @@ public class MixinTargetsModifierApplication {
     }
 
     /**
-     * key: original mixin class name, value: target modifier
+     * key: original mixin class name, value: class adjuster
      */
-    static final Map<String, MixinTargetModifier> MODIFIERS = new HashMap<>();
+    static final Map<String, MixinClassAdjuster> ADJUSTERS = new HashMap<>();
     final Map<String, String> generatedToOriginalMixins = new HashMap<>();
     final Set<String> originalMixins = new HashSet<>();
     final MethodHandles.Lookup lookup;
@@ -55,16 +56,16 @@ public class MixinTargetsModifierApplication {
 
     public static void init(MethodHandles.Lookup lookup, IMixinConfigPlugin mixinSquaredPlugin) {
         if (INSTANCE != null) {
-            throw new IllegalStateException("TargetModifierApplication is already initialized");
+            throw new IllegalStateException("MixinClassAdjusterApplication is already initialized");
         }
-        INSTANCE = new MixinTargetsModifierApplication(lookup, mixinSquaredPlugin);
+        INSTANCE = new MixinClassAdjusterApplication(lookup, mixinSquaredPlugin);
     }
 
-    public static MixinTargetsModifierApplication getInstance() {
+    public static MixinClassAdjusterApplication getInstance() {
         return INSTANCE;
     }
 
-    private MixinTargetsModifierApplication(MethodHandles.Lookup lookup, IMixinConfigPlugin mixinSquaredPlugin) {
+    private MixinClassAdjusterApplication(MethodHandles.Lookup lookup, IMixinConfigPlugin mixinSquaredPlugin) {
         MixinCancellerRegistrar.register((targetClassName, mixinClassName) -> originalMixins.contains(mixinClassName));
         this.lookup = lookup;
         this.mixinSquaredPlugin = mixinSquaredPlugin;
@@ -72,7 +73,12 @@ public class MixinTargetsModifierApplication {
                                     ".MixinSquaredGenerated$";
     }
 
-    public List<String> applyModifiers() {
+	public boolean shouldApplyMixin(String targetClassName, String generatedMixinClassName) {
+		String mixinClassName = generatedToOriginalMixins.get(generatedMixinClassName);
+		return ADJUSTERS.get(mixinClassName).shouldApplyMixin(targetClassName);
+	}
+
+    public List<String> applyAdjusters() {
         IMixinTransformer activeTransformer =
             (IMixinTransformer) MixinEnvironment.getDefaultEnvironment().getActiveTransformer();
         // FIXME: this is unsafe
@@ -100,10 +106,10 @@ public class MixinTargetsModifierApplication {
         } else {
             mixinServiceWrapper = (MixinServiceWrapper) service;
         }
-        IClassBytecodeProvider bytecodeProvider = mixinServiceWrapper.getBytecodeProvider();
-        // Apply modifiers!
-        for (MixinTargetModifier modifier : MODIFIERS.values()) {
-            applyModifier(bytecodeProvider, modifier);
+        // Apply adjusters!
+        Map<String, IReferenceMapper> mappersCache = new HashMap<>();
+        for (MixinClassAdjuster adjuster : ADJUSTERS.values()) {
+            applyAdjuster(mixinServiceWrapper, adjuster, mappersCache);
         }
         // Collect generated mixin class's simple names
         List<String> list = new ArrayList<>(generatedToOriginalMixins.size());
@@ -114,13 +120,10 @@ public class MixinTargetsModifierApplication {
         return list;
     }
 
-    public boolean shouldApplyMixin(String targetClassName, String generatedMixinClassName) {
-        String mixinClassName = generatedToOriginalMixins.get(generatedMixinClassName);
-        return MODIFIERS.get(mixinClassName).shouldApplyMixin(targetClassName);
-    }
-
-    private void applyModifier(IClassBytecodeProvider bytecodeProvider, MixinTargetModifier modifier) {
-        String mixinClassName = modifier.getMixinClassName();
+    private void applyAdjuster(IClassBytecodeProvider bytecodeProvider,
+                               MixinClassAdjuster adjuster,
+                               Map<String, IReferenceMapper> mappersCache) {
+        String mixinClassName = adjuster.getMixinClassName();
         // Get the original mixin class node
         ClassNode cNode;
         try {
@@ -132,8 +135,9 @@ public class MixinTargetsModifierApplication {
         List<String> targets = new ArrayList<>();
         AnnotationNode aNode = Annotations.getInvisible(cNode, Mixin.class);
         List<Object> values = aNode.values;
-        // The index of the "value" key in the annotation
-        int valueIndex = -1;
+        // The index of the "targets" key in the annotation
+        int targetIndex = -1;
+        int priorityIndex = -1;
         for (ListIterator<Object> iterator = values.listIterator(); iterator.hasNext(); ) {
             String key = (String) iterator.next();
             Object value = iterator.next();
@@ -146,66 +150,96 @@ public class MixinTargetsModifierApplication {
                 for (Type c : classes) {
                     targets.add(c.getClassName());
                 }
-                valueIndex = iterator.previousIndex();
-                // We'll overwrite the original Class type targets later
+                // remove original value
+                iterator.set(Collections.emptyList());
             } else if ("targets".equals(key)) {
                 @SuppressWarnings("unchecked")
                 List<String> originalTargets = (List<String>) value;
                 if (originalTargets.isEmpty()) {
                     continue;
                 }
-                // remove original class targets
                 targets.addAll(originalTargets);
-                iterator.set(Collections.emptyList());
+                targetIndex = iterator.previousIndex();
+                // We'll overwrite the original targets later
+            } else if ("priority".equals(key)) {
+                priorityIndex = iterator.previousIndex();
             }
         }
-        List<String> unmodifiableList = Collections.unmodifiableList(targets);
+        boolean modified = false;
+        
         // Modify the target classes
-        List<String> mixins = modifier.getTargets(unmodifiableList);
-        if (mixins == null || mixins == unmodifiableList) {
-            return;
-        }
-        // Remove the original Class type targets
-        // and write the modified to the annotation
-        ArrayList<Type> targetTypes = new ArrayList<>(mixins.size());
-        mixins.forEach(target -> targetTypes.add(Type.getObjectType(target.replace('.', '/'))));
-        if (valueIndex > -1) {
-            values.set(valueIndex, targetTypes);
-        } else {
-            values.add("value");
-            values.add(targetTypes);
-        }
-        for (MethodNode mNode : cNode.methods) {
-            if (mNode.visibleAnnotations == null) {
-                continue;
+        List<String> unmodifiableTargets = Collections.unmodifiableList(targets);
+        List<String> modifiedTargets = adjuster.getTargets(unmodifiableTargets);
+        if (modifiedTargets != null && modifiedTargets != unmodifiableTargets) {// Remove the original targets
+            // and write the modified to the annotation
+            if (targetIndex > -1) {
+                values.set(targetIndex, new ArrayList<>(modifiedTargets));
+            } else {
+                values.add("targets");
+                values.add(new ArrayList<>(modifiedTargets));
             }
-            for (AnnotationNode aNode1 : mNode.visibleAnnotations) {
-                AdjustableAnnotationNode aaNode = AdjustableAnnotationNode.fromNode(aNode1);
-                if (aaNode instanceof RemappableAnnotationNode) {
-                    RemappableAnnotationNode raNode = (RemappableAnnotationNode) aaNode;
-                    // Apply refmap to method targets
-                    raNode.applyRefmap();
-                    // MUST remove the class name from the method targets
-                    List<String> ss = new ArrayList<>(aaNode.<List<String>>get("method").get());
-                    for (ListIterator<String> iterator = ss.listIterator(); iterator.hasNext(); ) {
-                        String s1 = iterator.next();
-                        if (s1.indexOf('(') > s1.indexOf(';')) {
-                            iterator.set(s1.substring(s1.indexOf(';') + 1));
-                        }
+            String internalClassName = cNode.name;
+            String refMapperConfig = adjuster.getRefMapperConfig();
+            if (refMapperConfig == null) {
+                refMapperConfig = ReferenceMapper.DEFAULT_RESOURCE;
+            }
+            for (MethodNode mNode : cNode.methods) {
+                if (mNode.visibleAnnotations == null) {
+                    continue;
+                }
+                for (AnnotationNode aNode1 : mNode.visibleAnnotations) {
+                    int i = aNode1.values.indexOf("method");
+                    if (i == -1) {
+                        continue;
                     }
-                    aaNode.set("method", ss);
+                    Object o = aNode1.values.get(i + 1);
+                    List<?> l;
+                    if (!(o instanceof List<?>) || (l = (List<?>) o).isEmpty() || !(l.get(0) instanceof String)) {
+                        continue;
+                    }
+                    @SuppressWarnings("unchecked")
+                    List<String> methods = (List<String>) l;
+                    IReferenceMapper mapper = mappersCache.computeIfAbsent(refMapperConfig,
+                        k -> RemappingReferenceMapper.of(MixinEnvironment.getDefaultEnvironment(),
+                            ReferenceMapper.read(k)));
+                    for (ListIterator<String> iterator = methods.listIterator(); iterator.hasNext(); ) {
+                        String s1 = iterator.next();
+                        s1 = mapper.remap(internalClassName, s1);
+                        if (s1.indexOf('(') > s1.indexOf(';')) {
+                            // MUST remove the owner descriptor
+                            // otherwise the injection will fail
+                            s1 = s1.substring(s1.indexOf(';') + 1);
+                        }
+                        iterator.set(s1);
+                    }
                 }
             }
+            modified = true;
         }
-        // Rename the modified mixin class to a generated name
-        String generatedMixin = generatedMixinPrefix +
-                                mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1);
-        ClassRenamer.renameClass(cNode, generatedMixin);
-        // Define the modified mixin class
-        // TODO: Change the usage of ClassGenUtils to our implementation.
-        ClassGenUtils.defineClass(cNode, lookup);
-        // Done!
-        generatedToOriginalMixins.put(generatedMixin, mixinClassName);
-        originalMixins.add(mixinClassName);
+        
+        // Modify the priority
+        Integer priority = adjuster.getPriority();
+        if (priority != null) {
+            if (priorityIndex > -1) {
+                values.set(priorityIndex, priority);
+            } else {
+                values.add("priority");
+                values.add(priority);
+            }
+            modified = true;
+        }
+        
+        if (modified){
+            // Rename the modified mixin class to a generated name
+            String generatedMixin = generatedMixinPrefix +
+                                    mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1);
+            ClassRenamer.renameClass(cNode, generatedMixin);
+            // Define the modified mixin class
+            // TODO: Change the usage of ClassGenUtils to our implementation.
+            ClassGenUtils.defineClass(cNode, lookup);
+            // Done!
+            generatedToOriginalMixins.put(generatedMixin, mixinClassName);
+            originalMixins.add(mixinClassName);
+        }
     }
 }

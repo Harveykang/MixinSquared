@@ -27,9 +27,9 @@ package com.bawnorton.mixinsquared.platform.fabric;
 import com.bawnorton.mixinsquared.adjuster.MixinAnnotationAdjusterRegistrar;
 import com.bawnorton.mixinsquared.api.MixinAnnotationAdjuster;
 import com.bawnorton.mixinsquared.api.MixinCanceller;
-import com.bawnorton.mixinsquared.api.MixinTargetModifier;
+import com.bawnorton.mixinsquared.api.MixinClassAdjuster;
 import com.bawnorton.mixinsquared.canceller.MixinCancellerRegistrar;
-import com.bawnorton.mixinsquared.target_modifier.MixinTargetsModifierRegistrar;
+import com.bawnorton.mixinsquared.class_adjuster.MixinClassAdjusterRegistrar;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class MixinSquaredApiImplLoader {
@@ -54,13 +54,13 @@ public final class MixinSquaredApiImplLoader {
                 e.printStackTrace(System.err);
             }
         });
-        FabricLoader.getInstance().getEntrypointContainers("mixinsquared-target-modifier", MixinTargetModifier.class).forEach(container -> {
+        FabricLoader.getInstance().getEntrypointContainers("mixinsquared-class-adjuster", MixinClassAdjuster.class).forEach(container -> {
             try {
-                MixinTargetModifier mixinTargetModifier = container.getEntrypoint();
-                MixinTargetsModifierRegistrar.register(mixinTargetModifier);
+                MixinClassAdjuster mixinClassAdjuster = container.getEntrypoint();
+                MixinClassAdjusterRegistrar.register(mixinClassAdjuster);
             } catch (Throwable e) {
                 String id = container.getProvider().getMetadata().getId();
-                System.err.printf("Mod %s provides a broken MixinTargetModifier implementation:\n", id);
+                System.err.printf("Mod %s provides a broken MixinClassAdjuster implementation:\n", id);
                 e.printStackTrace(System.err);
             }
         });
