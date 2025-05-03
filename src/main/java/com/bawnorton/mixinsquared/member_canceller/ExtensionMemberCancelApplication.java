@@ -20,7 +20,6 @@ import java.util.*;
 
 public final class ExtensionMemberCancelApplication implements IExtension {
     static final ILogger LOGGER = MixinService.getService().getLogger("mixinsquared-member-canceller");
-    private static final String SHADOW_DESC = Type.getDescriptor(Shadow.class);
     static final List<MixinMemberCanceller> CANCELLERS = new ArrayList<>();
     // from MixinExtras com.llamalad7.mixinextras.transformer.MixinTransformerExtension
     private final Set<ClassNode> preparedMixins = Collections.newSetFromMap(new WeakHashMap<>());
@@ -129,7 +128,7 @@ public final class ExtensionMemberCancelApplication implements IExtension {
                     mNode.desc);
                 if (b) {
                     iterator.remove();
-                    LOGGER.warn("Cancelled mixin method {}#{} by {}", mixinClassName, mNode.desc, canceller.getClass().getName());
+                    LOGGER.warn("Cancelled mixin method {}#{};{} by {}", mixinClassName, mNode.name, mNode.desc, canceller.getClass().getName());
                     break;
                 }
             }
@@ -160,7 +159,7 @@ public final class ExtensionMemberCancelApplication implements IExtension {
                         removed = new HashSet<>();
                     }
                     removed.add(field.name);
-                    LOGGER.warn("Cancelled mixin field {}#{} by {}", mixinClassName, field.desc, canceller.getClass().getName());
+                    LOGGER.warn("Cancelled mixin field {}#{};{} by {}", mixinClassName, field.name, field.desc, canceller.getClass().getName());
                     break;
                 }
             }
