@@ -24,5 +24,7 @@ public interface MixinTargetModifier {
      * You can use this method to check if the target modifier should apply to the target class.
      * @see org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin#shouldApplyMixin(String, String)
      */
-    boolean shouldApplyMixin(String targetClassName);
+    default boolean shouldApplyMixin(String targetClassName) {
+        return true;
+    }
 }
